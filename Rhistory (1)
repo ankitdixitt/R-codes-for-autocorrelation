@@ -1,0 +1,512 @@
+delay_vec <- function(distmat, delay) {
+vec <- numeric(0)
+for(temp_ab in ab) {
+for(rep in c(1:3)) {
+submat <- extract_timeseries(temp_ab, distmat, rep)
+diags <- diag(submat[c(1:(6-delay)), c((1+delay):6)])
+df <- data.frame(diags)
+df$temp_ab <- temp_ab
+df$replicate <- rep
+df$time <- c(1:length(diags)) + (delay-1)
+vec <- rbind(vec, df)
+}
+}
+vec
+}
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(0,1,2,3,4,5,6,7,8,9)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+write.csv(RMSD3d, "RMSD3d.csv")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+ylim(0.0001, 0.001) +
+scale_y_log10()
+install.packages("limma")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+ylim(0.0001, 0.001) +
+scale_y_log10()
+library(limma)
+get_delays(RMSD3d)
+RMSD3d
+View(RMSD3d)
+BiocManager::install("limma")
+for(delay in c(0,1,2,3,4)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+# <<autocor_fset, echo=FALSE, cache=TRUE, fig.height=2, fig.width=6, fig.align='center'>>=
+autocor <- numeric(0)
+ab <- unique(substr(filenames, 1,3))
+extract_timeseries <- function(temp_source, mat, rep) {
+## For a given carbon source get the matrix containing the time series data
+## for that particular replicate
+day <- c(0:9)
+# vec <- c(paste("NONE_T_0_", rep, sep=""),
+#                 paste(c(carbonsource), c("T"), day, c(rep), sep="_"))
+vec <- c(paste(c(temp_source), rep(0:9, each = 3), "_", rep(1:3, 10), ".csv", sep = ""))
+# vec <- c(c(paste0("SLD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("SMD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("SHD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("PCD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("NCD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")))
+mat[vec,vec]
+}
+delay_vec <- function(distmat, delay) {
+vec <- numeric(0)
+for(temp_ab in ab) {
+for(rep in c(1:3)) {
+submat <- extract_timeseries(temp_ab, distmat, rep)
+diags <- diag(submat[c(1:(6-delay)), c((1+delay):6)])
+df <- data.frame(diags)
+df$temp_ab <- temp_ab
+df$replicate <- rep
+df$time <- c(1:length(diags)) + (delay-1)
+vec <- rbind(vec, df)
+}
+}
+vec
+}
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(0,1,2,3,4)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+write.csv(RMSD3d, "RMSD3d.csv")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+ylim(0.0001, 0.001) +
+scale_y_log10()
+get_delays(RMSD3d)
+View(get_delays(RMSD3d))
+matrix_names
+# dimnames(distMatrixSA) <- list(matrix_names, matrix_names)
+dimnames(RMSD3d) <- list(matrix_names, matrix_names)
+rmsd <- function(ff1, ff2, col1, col2, bins) {
+matrices <- disthelper(ff1, ff2, col1, col2, bins)
+sqrt(mean((matrices[[1]] - matrices[[2]])^2))
+}
+getdists <- function(mat) {
+within_dist <- numeric(0)
+between_dist <- numeric(0)
+for(i in c(1:(nrow(as.matrix(mat))/3))) {
+vec <- (i-1)*3 + c(1,2,3)
+submat_within <- as.matrix(mat)[vec, vec]
+dists_w <- as.numeric(as.dist(submat_within))
+## the above 3 lines extract the elements of a 3x3 matrix for every triplicate
+within_dist <- c(within_dist, dists_w)
+if(i < 14) {
+submat_between <- as.matrix(mat)[vec, c(((i-1)*3+4):
+ncol(as.matrix(mat)))]
+dists_bet <- as.numeric(submat_between)
+between_dist <- c(between_dist, dists_bet)
+}
+}
+## combine into data frame for ggplot density plots
+within <- data.frame(dist = within_dist)
+within$type <- "Within"
+between <- data.frame(dist = between_dist)
+between$type <- "Between"
+rbind(within, between)
+}
+head(RMSD3d)
+colnames(RMSD3d)
+ddfs <- getdists(distMatrixFA)
+ddfs$data <- "FSC-SSC"
+dd3d <- getdists(RMSD3d)
+dd3d$data <- "3D Voxel"
+bigd <- rbind(ddfs, dd3d)
+ggplot(bigd, aes(dist, fill=type)) + geom_density(alpha=0.2) +
+scale_x_log10() + facet_grid(~data)
+# <<kst_flowcyt, cache=TRUE, echo=FALSE>>=
+kst_fun <- function(dat) {
+ks.test(subset(dat, type=="Within")$dist, subset(dat, type=="Between")$dist,
+alternative="g")
+}
+# kst_fun(ddfa)
+kst_fun(ddfs)
+# kst_fun(ddsa)
+kst_fun(dd3d)
+#' @
+# <<fset_crosscor, cache=TRUE, echo=FALSE>>=
+cor(data.frame(
+# as.numeric(distMatrixFS),
+as.numeric(distMatrixFA),
+# as.numeric(distMatrixSA),
+as.numeric(RMSD3d)))
+colnames(RMSD3d)
+# <<autocor_fset, echo=FALSE, cache=TRUE, fig.height=2, fig.width=6, fig.align='center'>>=
+autocor <- numeric(0)
+ab <- unique(substr(filenames, 1,3))
+ab
+extract_timeseries <- function(temp_source, mat, rep) {
+## For a given carbon source get the matrix containing the time series data
+## for that particular replicate
+day <- c(0:9)
+# vec <- c(paste("NONE_T_0_", rep, sep=""),
+#                 paste(c(carbonsource), c("T"), day, c(rep), sep="_"))
+vec <- c(paste(c(temp_source), rep(0:9, each = 3), "_", rep(1:3, 10), ".csv", sep = ""))
+# vec <- c(c(paste0("SLD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("SMD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("SHD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("PCD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("NCD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")))
+mat[vec,vec]
+}
+delay_vec <- function(distmat, delay) {
+vec <- numeric(0)
+for(temp_ab in ab) {
+for(rep in c(1:3)) {
+submat <- extract_timeseries(temp_ab, distmat, rep)
+diags <- diag(submat[c(1:(6-delay)), c((1+delay):6)])
+df <- data.frame(diags)
+df$temp_ab <- temp_ab
+df$replicate <- rep
+df$time <- c(1:length(diags)) + (delay-1)
+vec <- rbind(vec, df)
+}
+}
+vec
+}
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(0,1,2,3,4)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+RMSD3d
+colnames(RMSD3d)
+write.csv(RMSD3d, "RMSD3d.csv")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+ylim(0.0001, 0.001) +
+scale_y_log10()
+get_delays(RMSD3d)
+head(get_delays(RMSD3d))
+head(RMSD3d)
+for(delay in c(0,1,2,3,4,5,6,7,8,9)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+colnames(RMSD3d)
+temp_ab
+ab
+mat <- numeric(0)
+distmat <- RMSD3d
+delay <- 5
+vec <- numeric(0)
+vec <- c(paste(c(temp_source), rep(0:9, each = 3), "_", rep(1:3, 10), ".csv", sep = ""))
+temp_source <- temp_ab
+temp_source <- "NCD"
+temp_source <- temp_ab
+temp_ab <- ab[1]
+temp_source <- temp_ab
+vec <- c(paste(c(temp_source), rep(0:9, each = 3), "_", rep(1:3, 10), ".csv", sep = ""))
+vec
+submat <- extract_timeseries(temp_ab, distmat, rep)
+submat
+# <<autocor_fset, echo=FALSE, cache=TRUE, fig.height=2, fig.width=6, fig.align='center'>>=
+autocor <- numeric(0)
+ab <- unique(substr(filenames, 1,3))
+extract_timeseries <- function(temp_source, mat, rep) {
+## For a given carbon source get the matrix containing the time series data
+## for that particular replicate
+day <- c(0:9)
+# vec <- c(paste("NONE_T_0_", rep, sep=""),
+#                 paste(c(carbonsource), c("T"), day, c(rep), sep="_"))
+vec <- c(paste(c(temp_source), rep(0:9, each = 3), "_", rep(1:3, 10), ".csv", sep = ""))
+# vec <- c(c(paste0("SLD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("SMD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("SHD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("PCD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("NCD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")))
+mat[vec,vec]
+}
+delay_vec <- function(distmat, delay) {
+vec <- numeric(0)
+for(temp_ab in ab) {
+for(rep in c(1:3)) {
+submat <- extract_timeseries(temp_ab, distmat, rep)
+diags <- diag(submat[c(1:(11-delay)), c((1+delay):11)])
+df <- data.frame(diags)
+df$temp_ab <- temp_ab
+df$replicate <- rep
+df$time <- c(1:length(diags)) + (delay-1)
+vec <- rbind(vec, df)
+}
+}
+vec
+}
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(0,1,2,3,4,5,6,7,8,9)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+write.csv(RMSD3d, "RMSD3d.csv")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+scale_y_log10()
+for(delay in c(0,1,2,3,4,5,6,7,8)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(0,1,2,3,4,5,6,7,8)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+write.csv(RMSD3d, "RMSD3d.csv")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+scale_y_log10()
+for(delay in c(1,2,3,4,5,6,7,8,9)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(1,2,3,4,5,6,7,8,9)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+write.csv(RMSD3d, "RMSD3d.csv")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+scale_y_log10()
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+scale_y()
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(1,2,3,4,5,6,7,8,9)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+write.csv(RMSD3d, "RMSD3d.csv")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+scale_y()
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(1,2,3,4,5,6,7,8,9)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+write.csv(RMSD3d, "RMSD3d.csv")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+scale_y()
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(1,2,3,4,5,6,7,8,9)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(1,2,3,4,5,6,7,8,9)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+write.csv(RMSD3d, "RMSD3d.csv")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+scale_y()
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+scale_y_log10()
+delay_vec <- function(distmat, delay) {
+vec <- numeric(0)
+for(temp_ab in ab) {
+for(rep in c(1:3)) {
+submat <- extract_timeseries(temp_ab, distmat, rep)
+diags <- diag(submat[c(0:(10-delay)), c((0+delay):10)])
+df <- data.frame(diags)
+df$temp_ab <- temp_ab
+df$replicate <- rep
+df$time <- c(1:length(diags)) + (delay-1)
+vec <- rbind(vec, df)
+}
+}
+vec
+}
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(0,1,2,3,4,5,6,7,8)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+write.csv(RMSD3d, "RMSD3d.csv")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+scale_y_log10()
+diags <- diag(submat[c(1:(11-delay)), c((1+delay):11)])
+df <- data.frame(diags)
+df$temp_ab <- temp_ab
+df$replicate <- rep
+df$time <- c(1:length(diags)) + (delay-1)
+vec <- rbind(vec, df)
+# <<autocor_fset, echo=FALSE, cache=TRUE, fig.height=2, fig.width=6, fig.align='center'>>=
+autocor <- numeric(0)
+ab <- unique(substr(filenames, 1,3))
+extract_timeseries <- function(temp_source, mat, rep) {
+## For a given carbon source get the matrix containing the time series data
+## for that particular replicate
+day <- c(0:9)
+# vec <- c(paste("NONE_T_0_", rep, sep=""),
+#                 paste(c(carbonsource), c("T"), day, c(rep), sep="_"))
+vec <- c(paste(c(temp_source), rep(0:9, each = 3), "_", rep(1:3, 10), ".csv", sep = ""))
+# vec <- c(c(paste0("SLD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("SMD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("SHD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("PCD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")),
+#          c(paste0("NCD", rep(1:5, each = 3), "_", rep(1:3, 5), ".csv")))
+mat[vec,vec]
+}
+delay_vec <- function(distmat, delay) {
+vec <- numeric(0)
+for(temp_ab in ab) {
+for(rep in c(1:3)) {
+submat <- extract_timeseries(temp_ab, distmat, rep)
+diags <- diag(submat[c(1:(11-delay)), c((1+delay):11)])
+df <- data.frame(diags)
+df$temp_ab <- temp_ab
+df$replicate <- rep
+df$time <- c(1:length(diags)) + (delay-1)
+vec <- rbind(vec, df)
+}
+}
+vec
+}
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(0,1,2,3,4,5,6,7,8)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+write.csv(RMSD3d, "RMSD3d.csv")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+scale_y_log10()
+df$time <- c(0:length(diags)) + (delay-1)
+get_delays(RMSD3d)
+delay_vec <- function(distmat, delay) {
+vec <- numeric(0)
+for(temp_ab in ab) {
+for(rep in c(1:3)) {
+submat <- extract_timeseries(temp_ab, distmat, rep)
+diags <- diag(submat[c(0:(10-delay)), c((0+delay):10)])
+df <- data.frame(diags)
+df$temp_ab <- temp_ab
+df$replicate <- rep
+df$time <- c(1:length(diags)) + (delay-1)
+vec <- rbind(vec, df)
+}
+}
+vec
+}
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(0,1,2,3,4,5,6,7,8)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+write.csv(RMSD3d, "RMSD3d.csv")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+scale_y_log10()
+delay_vec <- function(distmat, delay) {
+vec <- numeric(0)
+for(temp_ab in ab) {
+for(rep in c(1:3)) {
+submat <- extract_timeseries(temp_ab, distmat, rep)
+diags <- diag(submat[c(1:(11-delay)), c((1+delay):11)])
+df <- data.frame(diags)
+df$temp_ab <- temp_ab
+df$replicate <- rep
+df$time <- c(1:length(diags)) + (delay-1)
+vec <- rbind(vec, df)
+}
+}
+vec
+}
+get_delays <- function(distmat) {
+mat <- numeric(0)
+for(delay in c(1,2,3,4,5,6,7,8,9)) {
+temp <- delay_vec(distmat, delay)
+temp$delay <- delay
+mat <- rbind(mat, temp)
+}
+mat
+}
+write.csv(RMSD3d, "RMSD3d.csv")
+ggplot(get_delays(RMSD3d), aes(x=as.factor(delay), y=diags, fill=temp_ab)) +
+geom_boxplot() + scale_y_log10(name="Dissimilarity (RMSD 3D)") + facet_grid(~temp_ab) +
+scale_x_discrete(name="Delay (d)") +
+scale_y_log10()
